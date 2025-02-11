@@ -65,24 +65,46 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        # 添加 Ubuntu 官方软件源
+        echo "deb http://archive.ubuntu.com/ubuntu $(lsb_release -cs) main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+        echo "deb http://archive.ubuntu.com/ubuntu $(lsb_release -cs)-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+        echo "deb http://archive.ubuntu.com/ubuntu $(lsb_release -cs)-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+    
+        # 更新软件包列表
         sudo apt update -y
         sudo apt full-upgrade -y
-        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-        bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
-        git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
-        libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
-        mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
-        libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
-        vim wget xmlto xxd zlib1g-dev
+    
+        # 安装 Snap（如果未安装）
+        if ! command -v snap &> /dev/null; then
+          sudo apt install -y snapd
+        fi
+    
+        # 安装 Snap 包
+        sudo snap install ccache --classic
+        sudo snap install cmake --classic
+        sudo snap install device-tree-compiler --classic
+    
+        # 安装所需的软件包
+        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+        bzip2 curl flex gawk libtool lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full \
+        patch pkgconf python3 python3-pyelftools libpython3-dev rsync squashfs-tools swig \
+        texinfo upx-ucl unzip vim wget xxd zlib1g-dev \
+        fastjar gperf help2man libelf-dev libmpc-dev libreadline-dev subversion uglifyjs xmlto \
+        libgmp-dev libc6-i386  # 替换的包
+    
+        # 清理未使用的包
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
+    
+        # 设置时区
         sudo timedatectl set-timezone "$TZ"
+    
+        # 创建工作目录
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
-        # 清理多余文件，腾出磁盘空间
-        docker image prune -a -f  # 删除所有未使用的 Docker 镜像
-        # sudo -E apt-get remove -y --purge azure-cli ghc zulu* llvm* firefox google* dotnet* powershell mysql* php* android*
-        # sudo rm -rf /etc/mysql /etc/php /swapfile
+    
+        # 清理 Docker 镜像
+        docker image prune -a -f
 
     - name: 克隆源码
       working-directory: /workdir
